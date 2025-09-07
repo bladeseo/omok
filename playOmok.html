@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>오목 게임</title>
+  <style>
+    canvas {
+      border: 2px solid #333;
+      background-color: #f0d9b5;
+    }
+  </style>
+</head>
+<body>
+  <h2>오목 게임</h2>
+  <canvas id="board" width="600" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const size = 15;
+    const cellSize = canvas.width / size;
+    const board = Array.from({ length: size }, () => Array(size).fill(0));
+    let currentPlayer = 1; // 1: 흑, 2: 백
+
+    // 오목판 그리기
+    function drawBoard() {
+      for (let i = 0; i < size; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cellSize / 2, cellSize / 2 + i * cellSize);
+        ctx.lineTo(canvas.width - cellSize / 2, cellSize / 2 + i * cellSize);
+        ctx.moveTo(cellSize / 2 + i * cellSize, cellSize / 2);
+        ctx.lineTo(cellSize / 2 + i * cellSize, canvas.height - cellSize / 2);
+        ctx.stroke();
+      }
+    }
+
+    // 돌 그리기
+    function drawStone(x, y, player) {
+      const px = x * cellSize + cellSize / 2;
+      const py = y * cellSize + cellSize / 2;
+      ctx.beginPath();
+      ctx.arc(px, py, cellSize / 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = player === 1 ? 'black' : 'white';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 승리 체크
+    function checkWin(x, y, player) {
+      const directions = [
+        [1, 0], [0, 1], [1, 1], [1, -1]
+      ];
+      for (let [dx, dy] of directions) {
+        let count = 1;
+        for (let dir of [-1, 1]) {
+          let nx = x + dx * dir;
+          let ny = y + dy * dir;
+          while (
+            nx >= 0 && ny >= 0 && nx < size && ny < size &&
+            board[nx][ny] === player
+          ) {
+            count++;
+            nx += dx * dir;
+            ny += dy * dir;
+          }
+        }
+        if (count >= 5) return true;
+      }
+      return false;
+    }
+
+    // 클릭 이벤트
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / cellSize);
+      const y = Math.floor((e.clientY - rect.top) / cellSize);
+      if (board[x][y] === 0) {
+        board[x][y] = currentPlayer;
+        drawStone(x, y, currentPlayer);
+        if (checkWin(x, y, currentPlayer)) {
+          setTimeout(() => alert((currentPlayer === 1 ? '흑' : '백') + ' 승리!'), 10);
+          canvas.removeEventListener('click', arguments.callee);
+        }
+        currentPlayer = 3 - currentPlayer; // 플레이어 전환
+      }
+    });
+
+    drawBoard();
+  </script>
+</body>
+</html>
