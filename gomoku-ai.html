@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>오목 게임 with AI</title>
+    <style>
+        canvas {
+            border: 2px solid #333;
+            background-color: #f0d9b5;
+        }
+
+        body {
+            font-family: sans-serif;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>오목 게임 (흑: 사용자 / 백: AI)</h2>
+    <canvas id="board" width="600" height="600"></canvas>
+
+    <script>
+        const SIZE = 15;
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const cellSize = canvas.width / SIZE;
+        let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        let currentPlayer = 1;
+        let prevBestScore = 0;
+
+        function drawBoard() {
+            for (let i = 0; i < SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(cellSize / 2, cellSize / 2 + i * cellSize);
+                ctx.lineTo(canvas.width - cellSize / 2, cellSize / 2 + i * cellSize);
+                ctx.moveTo(cellSize / 2 + i * cellSize, cellSize / 2);
+                ctx.lineTo(cellSize / 2 + i * cellSize, canvas.height - cellSize / 2);
+                ctx.stroke();
+            }
+        }
+
+        function drawStone(x, y, player, temp) {
+            const px = x * cellSize + cellSize / 2;
+            const py = y * cellSize + cellSize / 2;
+
+            let r = cellSize / 2.5;
+            if (temp) {
+                r = r / 2;
+            }
+
+            ctx.beginPath();
+            // ctx.arc(px, py, cellSize / 2.5, 0, Math.PI * 2);
+            ctx.arc(px, py, r, 0, Math.PI * 2);
+
+            ctx.fillStyle = player === 1 ? 'black' : 'white';
+
+            if (temp) {
+                ctx.fillStyle = 'gray';
+            }
+
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function checkWin(x, y, player) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            for (let [dx, dy] of directions) {
+                let count = 1;
+                for (let dir of [-1, 1]) {
+                    let nx = x + dx * dir;
+                    let ny = y + dy * dir;
+                    while (
+                        nx >= 0 && ny >= 0 && nx < SIZE && ny < SIZE &&
+                        board[nx][ny] === player
+                    ) {
+                        count++;
+                        nx += dx * dir;
+                        ny += dy * dir;
+                    }
+                }
+                if (count >= 5) return true;
+            }
+            return false;
+        }
+
+        function hasNearbyStone(x, y) {
+            console.log('hasNearbyStone')
+
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && ny >= 0 && nx < SIZE && ny < SIZE && board[nx][ny] !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function getCandidateMoves() {
+            console.log('getCandidateMoves')
+
+            const moves = [];
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    if (board[x][y] === 0 && hasNearbyStone(x, y)) {
+                        moves.push([x, y]);
+
+                        // 후보 찍기
+                        // drawStone(x, y, 2, true);
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        function evaluateBoardPattern(player) {
+            console.log('evaluateBoardPattern')
+
+            let score = 0;
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+            function countPattern(x, y, dx, dy) {
+                let count = 0;
+                let block = 0;
+
+                // 앞으로 탐색
+                for (let i = 1; i <= 4; i++) {
+                    const nx = x + dx * i;
+                    const ny = y + dy * i;
+                    if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) {
+                        block++;
+                        break;
+                    }
+                    const cell = board[nx][ny];
+                    if (cell === player) {
+                        count++;
+
+
+                        console.log('nx :', nx, ' ny :', ny);
+                        console.log('count :', count);
+                    }
+                    else if (cell === 0) break;
+                    else {
+                        block++;
+                        break;
+                    }
+                }
+
+                // console.log('===== 앞으로 탐색 완료 =====');
+
+
+                // 뒤로 탐색
+                for (let i = 1; i <= 4; i++) {
+                    const nx = x - dx * i;
+                    const ny = y - dy * i;
+                    if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) {
+                        block++;
+                        break;
+                    }
+                    const cell = board[nx][ny];
+                    if (cell === player) {
+                        count++;
+
+                        console.log('nx :', nx, ' ny :', ny);
+                        console.log('count :', count);
+                    }
+                    else if (cell === 0) break;
+                    else {
+                        block++;
+                        break;
+                    }
+                }
+
+                // console.log('===== 뒤로 탐색 완료 =====');
+
+                // 상대방 위협을 계산 안 하는 듯
+
+                if (count >= 4) return 100000;
+                if (count === 3 && block === 0) return 5000;
+                if (count === 3 && block === 1) return 1000;
+                if (count === 2 && block === 0) return 500;
+                if (count === 2 && block === 1) return 100;
+                // if (count === 1 && block === 1) return 200;
+                if (count === 1 && block === 0) return 50;
+                // if (count === 0 && block === 1) return 25;
+                return 0;
+            }
+
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    if (board[x][y] === player) {
+                        for (let [dx, dy] of directions) {
+                            score += countPattern(x, y, dx, dy);
+                        }
+                    }
+
+                    // // 상대팀 말에 가까울 때도 점수 + ???
+                    // console.log(player)
+
+                    // if (board[x][y] === 3 - player) {
+                    //     for (let [dx, dy] of directions) {
+                    //         score += countPattern(x, y, dx, dy);
+                    //     }
+                    // }
+                }
+            }
+
+            return score;
+        }
+
+        function minimax(depth, isMaximizing, alpha, beta, player) {
+            console.log('===== minimax =====');
+            console.log(depth, isMaximizing, alpha, beta, player);
+
+            if (depth === 0) {
+                return evaluateBoardPattern(player);
+            }
+
+            const moves = getCandidateMoves();
+            console.log('===== moves =====');
+            console.log(moves);
+
+            let bestScore = isMaximizing ? -Infinity : Infinity;
+
+            for (let [x, y] of moves) {
+                board[x][y] = player;
+                const score = minimax(depth - 1, !isMaximizing, alpha, beta, 3 - player); // p1 : 사람, p2 : AI
+                board[x][y] = 0;
+
+                console.log('bestScore : ', bestScore, ' score : ', score);
+
+                if (isMaximizing) {
+                    bestScore = Math.max(bestScore, score);
+                    alpha = Math.max(alpha, score);
+                } else {
+                    bestScore = Math.min(bestScore, score);
+                    beta = Math.min(beta, score);
+                }
+                if (beta <= alpha) break;
+
+                console.log('inside for / bestScore : ', bestScore);
+            }
+
+            console.log('end for / bestScore : ', bestScore);
+
+            return bestScore;
+        }
+
+        // 중간에 막혀도 이어진 걸로 계산하는 오류 있는 듯
+        function findBestMove(player) {
+            console.log('findBestMove');
+
+            let bestScore = -Infinity;
+            let bestMove = null;
+            for (let [x, y] of getCandidateMoves()) {
+                board[x][y] = player;
+                const score = minimax(2, false, -Infinity, Infinity, 3 - player);
+                board[x][y] = 0;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = [x, y];
+                }
+            }
+
+            prevBestScore = bestScore;
+
+            console.log(bestMove);
+
+            return bestMove || [null, null];
+        }
+
+        function findBlockingMove(opponent) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+            for (let x = 0; x < SIZE; x++) {
+                for (let y = 0; y < SIZE; y++) {
+                    if (board[x][y] !== 0) continue;
+                    for (let [dx, dy] of directions) {
+                        let count = 0;
+                        for (let i = 1; i <= 4; i++) {
+                            const nx = x + dx * i;
+                            const ny = y + dy * i;
+                            if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) break;
+                            if (board[nx][ny] === opponent) count++;
+                            else break;
+                        }
+                        for (let i = 1; i <= 4; i++) {
+                            const nx = x - dx * i;
+                            const ny = y - dy * i;
+                            if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) break;
+                            if (board[nx][ny] === opponent) count++;
+                            else break;
+                        }
+                        if (count >= 3) return [x, y];
+                    }
+                }
+            }
+            return null;
+        }
+
+
+        function aiTurn() {
+            let blockMove = findBlockingMove(1); // 사용자(흑) 차단 우선
+            let x, y;
+
+            let attX, attY;
+
+            // 내가 조금 더 유리하면 공격을 해야 되는데
+            // 지금은 무조건 수비함
+
+            [attX, attY] = findBestMove(2);
+
+            // 한쪽 막힌 3개 미만이면 수비
+            if (blockMove && prevBestScore < 1000) {
+                [x, y] = blockMove;
+            } else {
+                [x, y] = [attX, attY];
+            }
+
+            if (x !== null && y !== null && board[x][y] === 0) {
+                board[x][y] = 2;
+                drawStone(x, y, 2);
+                if (checkWin(x, y, 2)) {
+                    setTimeout(() => alert('백(AI) 승리!'), 10);
+                    canvas.removeEventListener('click', handleClick);
+                }
+                currentPlayer = 1;
+            }
+        }
+
+        function handleClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / cellSize);
+            const y = Math.floor((e.clientY - rect.top) / cellSize);
+            if (board[x][y] === 0 && currentPlayer === 1) {
+                board[x][y] = 1;
+                drawStone(x, y, 1);
+                if (checkWin(x, y, 1)) {
+                    setTimeout(() => alert('흑 승리!'), 10);
+                    canvas.removeEventListener('click', handleClick);
+                    return;
+                }
+                currentPlayer = 2;
+                setTimeout(aiTurn, 300);
+            }
+        }
+
+        drawBoard();
+        canvas.addEventListener('click', handleClick);
+    </script>
+</body>
+
+</html>
