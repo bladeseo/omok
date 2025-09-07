@@ -1,5 +1,5 @@
 onmessage = function (e) {
-    const { board, depth, player } = e.data;
+    const { selectedWinningLength, board, depth, player } = e.data;
     const SIZE = board.length;
 
     function getCandidateMoves(board) {
@@ -55,16 +55,37 @@ onmessage = function (e) {
             // if (count === 2 && block === 1) return 100;
             // if (count === 1 && block === 0) return 50;
 
-            if (count >= 4) return 100000;
-            if (count === 3 && block === 0) return 5000;
-            if (count === 3 && block === 1) return 1000;
-            if (count === 2 && block === 0) return 500;
-            if (count === 2 && block === 1) return 100;
-            if (count === 1 && block === 0) return 50;
-            if (count === 1 && block === 1) return 25;
-            // if (count === 0 && block === 1) return 10;
-            if (count === 0 && block === 0) return 5;
+            if (selectedWinningLength === 4) {
+                if (count >= 3) return 200000;
+                if (count === 2 && block === 0) return 10000;
+                if (count === 2 && block === 1) return 5000;
+                if (count === 1 && block === 0) return 100;
+                if (count === 1 && block === 1) return 500;
+                if (count === 0 && block === 0) return 100;
 
+            } else if (selectedWinningLength === 5) {
+                if (count >= 4) return 100000;
+                if (count === 3 && block === 0) return 5000;
+                if (count === 3 && block === 1) return 1000;
+                if (count === 2 && block === 0) return 500;
+                if (count === 2 && block === 1) return 100;
+                if (count === 1 && block === 0) return 50;
+                if (count === 1 && block === 1) return 25;
+                // if (count === 0 && block === 1) return 10;
+                if (count === 0 && block === 0) return 5;
+
+            }  else if (selectedWinningLength === 6) {
+                if (count >= 4) return 100000;
+                if (count === 3 && block === 0) return 5000;
+                if (count === 3 && block === 1) return 1000;
+                if (count === 2 && block === 0) return 500;
+                if (count === 2 && block === 1) return 100;
+                if (count === 1 && block === 0) return 50;
+                if (count === 1 && block === 1) return 25;
+                // if (count === 0 && block === 1) return 10;
+                if (count === 0 && block === 0) return 5;
+            }
+            
             return 0;
         }
 
@@ -143,7 +164,7 @@ onmessage = function (e) {
                         if (board[nx][ny] === opponent) count++;
                         else break;
                     }
-                    if (count >= 3) return [x, y, 0];
+                    if (count >= (selectedWinningLength - 2)) return [x, y, 0];
                 }
             }
         }
