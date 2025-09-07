@@ -157,9 +157,10 @@ onmessage = function (e) {
     // postMessage(bestMove);
 
     // 한쪽 막힌 3개 미만이면 수비
+    console.log('blockMove : ', blockMove)
     console.log('bestMove : ', bestMove)
 
-    if (blockMove && bestMove[2] < 6000) {
+    if (blockMove && bestMove[2] < 100000) {
         postMessage(blockMove);
     } else {
         postMessage(bestMove);
