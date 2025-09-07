@@ -110,7 +110,7 @@
                         moves.push([x, y]);
 
                         // 후보 찍기
-                        // drawStone(x, y, 2, true);
+                        drawStone(x, y, 2, true);
                     }
                 }
             }
@@ -178,6 +178,13 @@
 
                 // console.log('===== 뒤로 탐색 완료 =====');
 
+                // if (count >= 4) return 100000;
+                // if (count === 3 && block === 0) return 5000;
+                // if (count === 3 && block === 1) return 1000;
+                // if (count === 2 && block === 0) return 500;
+                // if (count === 2 && block === 1) return 100;
+                // if (count === 1 && block === 0) return 50;
+
                 // 상대방 위협을 계산 안 하는 듯
 
                 if (count >= 4) return 100000;
@@ -185,9 +192,10 @@
                 if (count === 3 && block === 1) return 1000;
                 if (count === 2 && block === 0) return 500;
                 if (count === 2 && block === 1) return 100;
-                // if (count === 1 && block === 1) return 200;
                 if (count === 1 && block === 0) return 50;
-                // if (count === 0 && block === 1) return 25;
+                if (count === 1 && block === 1) return 25;
+                // if (count === 0 && block === 1) return 10;
+                if (count === 0 && block === 0) return 5;
                 return 0;
             }
 

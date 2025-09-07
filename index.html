@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>오목 게임 with AI</title>
+  <style>
+    canvas {
+      border: 2px solid #333;
+      background-color: #f0d9b5;
+    }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>오목 게임 (흑: 사용자 / 백: AI)</h2>
+  <canvas id="board" width="600" height="600"></canvas>
+
+  <script>
+    const SIZE = 15;
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const cellSize = canvas.width / SIZE;
+    let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+    let currentPlayer = 1;
+
+    const worker = new Worker('aiWorker.js');
+
+    function drawBoard() {
+      for (let i = 0; i < SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cellSize / 2, cellSize / 2 + i * cellSize);
+        ctx.lineTo(canvas.width - cellSize / 2, cellSize / 2 + i * cellSize);
+        ctx.moveTo(cellSize / 2 + i * cellSize, cellSize / 2);
+        ctx.lineTo(cellSize / 2 + i * cellSize, canvas.height - cellSize / 2);
+        ctx.stroke();
+      }
+    }
+
+    function drawStone(x, y, player) {
+      const px = x * cellSize + cellSize / 2;
+      const py = y * cellSize + cellSize / 2;
+      ctx.beginPath();
+      ctx.arc(px, py, cellSize / 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = player === 1 ? 'black' : 'white';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function checkWin(x, y, player) {
+      const directions = [[1,0],[0,1],[1,1],[1,-1]];
+      for (let [dx, dy] of directions) {
+        let count = 1;
+        for (let dir of [-1, 1]) {
+          let nx = x + dx * dir;
+          let ny = y + dy * dir;
+          while (
+            nx >= 0 && ny >= 0 && nx < SIZE && ny < SIZE &&
+            board[nx][ny] === player
+          ) {
+            count++;
+            nx += dx * dir;
+            ny += dy * dir;
+          }
+        }
+        if (count >= 5) return true;
+      }
+      return false;
+    }
+
+    function handleClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / cellSize);
+      const y = Math.floor((e.clientY - rect.top) / cellSize);
+      if (board[x][y] === 0 && currentPlayer === 1) {
+        board[x][y] = 1;
+        drawStone(x, y, 1);
+        if (checkWin(x, y, 1)) {
+          setTimeout(() => alert('흑 승리!'), 10);
+          canvas.removeEventListener('click', handleClick);
+          return;
+        }
+        currentPlayer = 2;
+        worker.postMessage({ board, depth: 3, player: 2 });
+      }
+    }
+
+    worker.onmessage = function (e) {
+      const [x, y] = e.data;
+
+      if (board[x][y] === 0) {
+        board[x][y] = 2;
+        drawStone(x, y, 2);
+
+        if (checkWin(x, y, 2)) {
+          setTimeout(() => alert('백(AI) 승리!'), 10);
+          canvas.removeEventListener('click', handleClick);
+        }
+        
+        currentPlayer = 1;
+      }
+    };
+
+    drawBoard();
+    canvas.addEventListener('click', handleClick);
+  </script>
+</body>
+</html>
