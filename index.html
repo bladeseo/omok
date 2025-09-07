@@ -17,13 +17,17 @@
 <body>
   <div>
     <h2><span id="selected_length">오</span>목 게임 (흑: 사용자 / 백: AI)</h2>
-    <label for="winning_length">게임을 선택하세요:</label>
+    <label for="winning_length">게임을 선택하세요 : </label>
     <select id="winning_length" onchange="getSelectedWinningLength()">
       <option value="4" selected>사목</option>
       <option value="5">오목</option>
       <option value="6">육목</option>
     </select>
   </div>
+
+  <br/>
+
+  <div>AI 상태 : <span id="status" style="color: green">대기 중</span></div>
 
   <br/>
 
@@ -48,6 +52,19 @@
     }
 
     getSelectedWinningLength();
+
+
+    function setStatusComputing() {
+      const textElement = document.getElementById("status");
+      textElement.textContent = '계산 중 ...'
+      textElement.style.color = 'red';
+    }
+
+    function setStatusReady() {
+      const textElement = document.getElementById("status");
+      textElement.textContent = '대기 중';
+      textElement.style.color = 'green';
+    }
 
 
     function drawBoard() {
@@ -93,6 +110,8 @@
     }
 
     function handleClick(e) {
+      setStatusComputing();
+
       const rect = canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) / cellSize);
       const y = Math.floor((e.clientY - rect.top) / cellSize);
@@ -102,6 +121,9 @@
         if (checkWin(x, y, 1)) {
           setTimeout(() => alert('흑 승리!'), 10);
           canvas.removeEventListener('click', handleClick);
+
+          setStatusReady();
+
           return;
         }
         currentPlayer = 2;
@@ -110,6 +132,8 @@
     }
 
     worker.onmessage = function (e) {
+      setStatusReady();
+
       const [x, y] = e.data;
 
       if (board[x][y] === 0) {

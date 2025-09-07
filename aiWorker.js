@@ -23,6 +23,9 @@ onmessage = function (e) {
                 }
             }
         }
+
+        console.log('moves : ', moves)
+
         return moves;
     }
 
@@ -150,14 +153,14 @@ onmessage = function (e) {
                 if (board[x][y] !== 0) continue;
                 for (let [dx, dy] of directions) {
                     let count = 0;
-                    for (let i = 1; i <= 4; i++) {
+                    for (let i = 1; i <= (selectedWinningLength - 1); i++) {
                         const nx = x + dx * i;
                         const ny = y + dy * i;
                         if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) break;
                         if (board[nx][ny] === opponent) count++;
                         else break;
                     }
-                    for (let i = 1; i <= 4; i++) {
+                    for (let i = 1; i <= (selectedWinningLength - 1); i++) {
                         const nx = x - dx * i;
                         const ny = y - dy * i;
                         if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) break;
