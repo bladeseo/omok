@@ -35,7 +35,7 @@
 
   <script>
     const SIZE = 15;
-    const MINIMAX_DEPTH = 2;
+    const MINIMAX_DEPTH = 2; // 3부터는 심하게 느려짐
 
     const canvas = document.getElementById('board');
     const ctx = canvas.getContext('2d');
@@ -45,7 +45,7 @@
     
     let currentPlayer = 1;
 
-    let selectedWinningLength = 4;
+    let selectedWinningLength = 5; // 4목, 5목, 6목
 
     const worker = new Worker('aiWorker.js');
 

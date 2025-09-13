@@ -33,19 +33,21 @@ onmessage = function (e) {
     // 빈 공간 계산 함수
     // 공간이 아니라 라인 상 갯수를 따지는 듯..
     // 틀렸다고 보기에는 애매하나...
-    function countEmptySpaces(boardSize, x, y, dx, dy) {
-        console.log(`boardSize : ${boardSize}`);
+    function countEmptySpaces(emptyLimitSize, x, y, dx, dy) {
+        console.log(`emptyLimitSize : ${emptyLimitSize}`);
 
         let count = 0;
-        for (let i = 1; i < boardSize; i++) {
+        for (let i = 1; i < emptyLimitSize; i++) {
             const nx = x + dx * i;
             const ny = y + dy * i;
             
             if (
+                x >= 0 &&
+                y >= 0 &&
                 nx >= 0 &&
                 ny >= 0 &&
-                nx < boardSize &&
-                ny < boardSize &&
+                nx < emptyLimitSize &&
+                ny < emptyLimitSize &&
                 board[nx][ny] === EMPTY
             ) {
                 count++;
@@ -58,7 +60,12 @@ onmessage = function (e) {
 
     // 가장 넓은 방향 찾기
     function findBestMoveByEmptySpace(boardSize, opponentStones) {
+
+        let emptyLimitSize = 10;
+
+
         // 8방향 벡터
+        // [dx, dy]
         const directions = [
             [1, 0], [-1, 0], [0, 1], [0, -1], // 상하좌우
             [1, 1], [1, -1], [-1, 1], [-1, -1], // 대각선
@@ -71,26 +78,43 @@ onmessage = function (e) {
         let maxSpace = -1;
 
         for (const [x, y] of opponentStones) {
-            for (const [dx, dy] of directions) {
-                const space = countEmptySpaces(boardSize, x, y, dx, dy);
 
-                console.log(`dx : ${dx}, dy : ${dy}, space : ${space}`);
+            console.log(`opp. x : ${x}, opp. y : ${y} =====`);
+
+            for (const [dx, dy] of directions) {
+
+                let sumSpace = 0;
+
+                // dx, dy 에 따라
+                // x, y 를 주변 여러 개로 뿌려서 확인 => 8개로 고정
+                for (let ax = -1; ax <= 1; ax++) {
+                    for (let ay = -1; ay <= 1; ay++) {
+                        const space = countEmptySpaces(emptyLimitSize, x + ax, y + ay, dx, dy);
+
+                        // console.log(`dx : ${dx}, dy : ${dy}, space : ${space}`);
+
+                        sumSpace += space;
+                    }
+                }
+
+                console.log(`dx : ${dx}, dy : ${dy}, sumSpace : ${sumSpace}`);
 
                 // 동점이라면 여러개 결과가 나가도록?
                 // => 대각선을 우선하도록
-                if (space >= maxSpace) {
-                    // space 가 동일하면 대각선 위치로 업데이트
-                    if (space === maxSpace) {
+                if (sumSpace >= maxSpace) {
+                    // sumSpace 가 동일하면 대각선 위치로 업데이트
+                    if (sumSpace === maxSpace) {
                         if ((Math.abs(dx) + Math.abs(dy)) === 2) {
-                            maxSpace = space;
+                            maxSpace = sumSpace;
                             bestMove = [x + dx, y + dy];
                         }
                     } else {
-                        maxSpace = space;
+                        maxSpace = sumSpace;
                         bestMove = [x + dx, y + dy];
                     }
                     
                 }
+                
             }
         }
 
@@ -132,7 +156,7 @@ onmessage = function (e) {
             }
         }
 
-        console.log('moves : ', moves)
+        // console.log('moves : ', moves)
 
         return moves;
     }
@@ -182,7 +206,7 @@ onmessage = function (e) {
                 if (count === 2 && block === 1) return 100;
                 if (count === 1 && block === 0) return 50;
                 if (count === 1 && block === 1) return 25;
-                // if (count === 0 && block === 1) return 10;
+                if (count === 0 && block === 1) return 10;
                 if (count === 0 && block === 0) return 5;
 
             }  else if (selectedWinningLength === 6) {
@@ -205,6 +229,8 @@ onmessage = function (e) {
                 if (board[x][y] === player) {
                     for (let [dx, dy] of directions) {
                         score += countPattern(x, y, dx, dy);
+
+                        console.log(`score : ${score}`)
                     }
                 }
             }
@@ -279,6 +305,8 @@ onmessage = function (e) {
             // => minimax 따로, 다른 평가 따로.
             if (score >= bestScore) {
 
+                console.log(`score : ${score}`);
+
                 // score 가 동일하면 공간 넓은 위치로 업데이트
                 if (score === bestScore) {
                     if (bestMoveByEmptySpace[0] === x && bestMoveByEmptySpace[1] === y) {
@@ -292,7 +320,7 @@ onmessage = function (e) {
             }
         }
 
-        console.log('bestScore : ', bestScore);
+        console.log(`bestScore : ${bestScore}`);
 
         return bestMove || [Math.floor(SIZE / 2), Math.floor(SIZE / 2), 0];
     }
@@ -302,7 +330,9 @@ onmessage = function (e) {
 
         for (let x = 0; x < SIZE; x++) {
             for (let y = 0; y < SIZE; y++) {
+
                 if (board[x][y] !== EMPTY) continue;
+
                 for (let [dx, dy] of directions) {
                     let count = 0;
                     for (let i = 1; i <= (selectedWinningLength - 1); i++) {
@@ -319,7 +349,10 @@ onmessage = function (e) {
                         if (board[nx][ny] === opponent) count++;
                         else break;
                     }
-                    if (count >= (selectedWinningLength - 2)) return [x, y, 0];
+
+                    if (count >= 2) return [x, y, count];
+
+                    // if (count >= (selectedWinningLength - 2)) return [x, y, count];
                 }
             }
         }
@@ -338,14 +371,19 @@ onmessage = function (e) {
     const bestMove = findBestMoveByMinimax(board, player, bestMoveByEmptySpace);
     
 
-    // 한쪽 막힌 3개 미만이면 수비
+    // 내 돌 중 가장 좋은 케이스가 한쪽 막힌 3개 미만이면 수비
     console.log(`blockMove : ${blockMove}`)
     console.log(`bestMove : ${bestMove}`)
 
-    if (blockMove && bestMove[2] < 100000) {
-        postMessage(blockMove);
+    // 100000
+    if (blockMove && blockMove[2] === 1) { //  && bestMove[2] < 25
+        postMessage(bestMove); // 공격
+    } else if (blockMove && blockMove[2] === 2 && bestMove[2] < 100) { //  && bestMove[2] < 100
+        postMessage(blockMove); // 방어
+    } else if (blockMove && blockMove[2] >= 3 && bestMove[2] < 100000) {
+        postMessage(blockMove); // 방어
     } else {
-        postMessage(bestMove);
+        postMessage(bestMove); // 공격
     }
 
 };
