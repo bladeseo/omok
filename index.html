@@ -19,8 +19,8 @@
     <h2><span id="selected_length">오</span>목 게임 (흑: 사용자 / 백: AI)</h2>
     <label for="winning_length">게임을 선택하세요 : </label>
     <select id="winning_length" onchange="getSelectedWinningLength()">
-      <option value="4" selected>사목</option>
-      <option value="5">오목</option>
+      <option value="4">사목</option>
+      <option value="5" selected>오목</option>
       <option value="6">육목</option>
     </select>
   </div>
@@ -34,11 +34,15 @@
   <canvas id="board" width="600" height="600"></canvas>
 
   <script>
-    const SIZE = 12;
+    const SIZE = 15;
+    const MINIMAX_DEPTH = 2;
+
     const canvas = document.getElementById('board');
     const ctx = canvas.getContext('2d');
     const cellSize = canvas.width / SIZE;
+
     let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+    
     let currentPlayer = 1;
 
     let selectedWinningLength = 4;
@@ -66,7 +70,8 @@
       textElement.style.color = 'green';
     }
 
-
+    // canvas 를 사용하므로, (x, y) 순서로 처리하는 듯
+    // js data 로만 처리하면 y, x 순서가 더 맞다고
     function drawBoard() {
       for (let i = 0; i < SIZE; i++) {
         ctx.beginPath();
@@ -127,7 +132,10 @@
           return;
         }
         currentPlayer = 2;
-        worker.postMessage({ selectedWinningLength, board, depth: 5, player: 2 });
+
+        // AI 플레이어(2)의 다음 수 찾기
+        // depth: 5 => minimax() 에 영향
+        worker.postMessage({ SIZE, selectedWinningLength, board, depth: MINIMAX_DEPTH, player: 2 });
       }
     }
 
@@ -151,6 +159,12 @@
 
     drawBoard();
     canvas.addEventListener('click', handleClick);
+
+
+    // // pc 가 선공
+    // board[5][5] = 2;
+    // drawStone(5, 5, 2);
+
   </script>
 </body>
 </html>
